@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, ReactNode } from 'react';
+import { initData } from '@tma.js/sdk-react';
 import { ru, type TranslationKeys } from './ru';
 import { en } from './en';
 
@@ -25,15 +26,22 @@ function detectLanguage(): Lang {
     return saved;
   }
 
-  // Try to detect from Telegram
+  // Try to detect from Telegram (initData is restored in init.ts before render)
   try {
-    const tgLang = (window as any).Telegram?.WebApp?.initDataUnsafe?.user?.language_code;
+    const tgLang = initData.user()?.language_code;
     if (tgLang === 'ru') return 'ru';
+    if (tgLang) return 'en';
   } catch (e) {
     // Ignore
   }
 
-  // Default to English
+  // Fall back to browser language
+  try {
+    if ((navigator.language || '').toLowerCase().startsWith('ru')) return 'ru';
+  } catch (e) {
+    // Ignore
+  }
+
   return 'en';
 }
 

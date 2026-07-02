@@ -221,10 +221,13 @@ async function loadFromStorage(): Promise<Sprint | null> {
       localSprint = JSON.parse(localData);
     }
 
-    // Try to load from cloud if supported
+    // Try to load from cloud if supported (with timeout so UI never hangs)
     if (cloudStorage.isSupported()) {
       try {
-        const cloudData = await cloudStorage.getItem(STORAGE_KEY);
+        const cloudData = await Promise.race([
+          cloudStorage.getItem(STORAGE_KEY),
+          new Promise<null>(resolve => setTimeout(() => resolve(null), 2000)),
+        ]);
         if (cloudData) {
           const cloudSprint: Sprint = JSON.parse(cloudData);
 
