@@ -49,6 +49,18 @@ export const ru = {
   notePlaceholder: 'Что сработало? Что нужно улучшить?',
   calendarSync: 'Синхронизация с Google Calendar',
   comingSoon: 'Скоро',
+  calendarSyncDesc: 'Подключите Google Calendar для автоматической синхронизации задач с датами.',
+  connectGoogleCalendar: 'Подключить Google Calendar',
+  pasteAuthCode: 'Вставьте код авторизации или URL:',
+  submitCode: 'Подтвердить',
+  calendarConnected: 'Google Calendar подключён',
+  syncNow: 'Синхронизировать',
+  syncing: 'Синхронизация...',
+  syncResultCreated: 'Создано: {{count}}',
+  syncResultUpdated: 'Обновлено: {{count}}',
+  syncResultDeleted: 'Удалено: {{count}}',
+  thisWeekEvents: 'События на этой неделе',
+  calendarError: 'Ошибка подключения к календарю',
 
   // Setup wizard
   setupTitle: 'Новый спринт',

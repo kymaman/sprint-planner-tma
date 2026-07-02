@@ -1,7 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useT } from '@/i18n';
 import { useSprintStore } from '@/store';
 import { currentWeek, weekStats, unfinishedTasks, carryOverTask } from '@/model/logic';
+import { useRawInitData } from '@tma.js/sdk-react';
+import {
+  getOAuthStatus,
+  getOAuthUrl,
+  submitOAuthCode,
+  syncSprint,
+  getEvents,
+  CalendarAPIError,
+  type CalendarEvent,
+} from '@/api/calendar';
 
 export function ReviewPage() {
   const { t } = useT();
@@ -169,13 +179,272 @@ export function ReviewPage() {
 
 function CalendarSection() {
   const { t } = useT();
+  const { state, updateTask } = useSprintStore();
+  const initDataRaw = useRawInitData();
 
-  return (
-    <div className="card" style={{ textAlign: 'center', padding: '32px', background: 'var(--bg-card)', opacity: 0.6 }}>
-      <div style={{ fontSize: '18px', marginBottom: '8px' }}>{t('calendarSync')}</div>
-      <div style={{ fontSize: '14px', color: 'var(--text-tertiary)' }}>
-        {t('comingSoon')}
+  const [connected, setConnected] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [oauthCode, setOauthCode] = useState('');
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<{ created: number; updated: number; deleted: number } | null>(null);
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
+
+  useEffect(() => {
+    checkStatus();
+  }, []);
+
+  async function checkStatus() {
+    try {
+      setLoading(true);
+      setError('');
+      const status = await getOAuthStatus(initDataRaw);
+      setConnected(status.connected);
+    } catch (err) {
+      if (err instanceof CalendarAPIError) {
+        setError(err.message);
+      } else {
+        setError(t('calendarError'));
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleConnect() {
+    try {
+      setError('');
+      const { url } = await getOAuthUrl(initDataRaw);
+      window.open(url, '_blank');
+    } catch (err) {
+      if (err instanceof CalendarAPIError) {
+        setError(err.message);
+      } else {
+        setError(t('calendarError'));
+      }
+    }
+  }
+
+  async function handleSubmitCode() {
+    if (!oauthCode.trim()) return;
+
+    try {
+      setError('');
+      setLoading(true);
+      await submitOAuthCode(initDataRaw, oauthCode);
+      setConnected(true);
+      setOauthCode('');
+    } catch (err) {
+      if (err instanceof CalendarAPIError) {
+        setError(err.message);
+      } else {
+        setError(t('calendarError'));
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleSync() {
+    if (!state.sprint) return;
+
+    try {
+      setError('');
+      setSyncing(true);
+      setSyncResult(null);
+
+      const result = await syncSprint(initDataRaw, state.sprint);
+
+      // Apply two-way sync changes
+      if (result.changedTasks.length > 0) {
+        for (const change of result.changedTasks) {
+          updateTask(change.taskId, { week: change.newWeek, day: change.newDay });
+        }
+      }
+
+      setSyncResult({
+        created: result.created,
+        updated: result.updated,
+        deleted: result.deleted,
+      });
+
+      // Load this week's events
+      await loadWeekEvents();
+    } catch (err) {
+      if (err instanceof CalendarAPIError) {
+        setError(err.message);
+      } else {
+        setError(t('calendarError'));
+      }
+    } finally {
+      setSyncing(false);
+    }
+  }
+
+  async function loadWeekEvents() {
+    if (!state.sprint) return;
+
+    try {
+      const today = new Date();
+      const weekStart = new Date(today);
+      weekStart.setDate(weekStart.getDate() - today.getDay() + 1); // Monday
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekEnd.getDate() + 6); // Sunday
+
+      const evts = await getEvents(
+        initDataRaw,
+        weekStart.toISOString(),
+        weekEnd.toISOString()
+      );
+      setEvents(evts);
+    } catch {
+      // Silently ignore event loading errors
+    }
+  }
+
+  if (loading && !connected) {
+    return (
+      <div className="card" style={{ textAlign: 'center', padding: '24px' }}>
+        <div style={{ fontSize: '16px', color: 'var(--text-secondary)' }}>
+          {t('loading')}
+        </div>
       </div>
+    );
+  }
+
+  if (!connected) {
+    return (
+      <div className="card" style={{ padding: '24px' }}>
+        <h2 style={{ fontSize: '18px', marginBottom: '16px' }}>{t('calendarSync')}</h2>
+
+        <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
+          {t('calendarSyncDesc')}
+        </p>
+
+        <button
+          onClick={handleConnect}
+          className="btn"
+          style={{
+            width: '100%',
+            padding: '12px',
+            background: 'var(--accent-blue)',
+            color: 'white',
+            marginBottom: '16px',
+          }}
+        >
+          {t('connectGoogleCalendar')}
+        </button>
+
+        <div style={{ marginBottom: '12px' }}>
+          <label style={{ display: 'block', fontSize: '14px', marginBottom: '8px', color: 'var(--text-secondary)' }}>
+            {t('pasteAuthCode')}
+          </label>
+          <input
+            type="text"
+            value={oauthCode}
+            onChange={(e) => setOauthCode(e.target.value)}
+            placeholder="http://localhost/?code=..."
+            style={{
+              width: '100%',
+              padding: '12px',
+              background: 'var(--bg-primary)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: '12px',
+              color: 'var(--text-primary)',
+              fontSize: '14px',
+              fontFamily: 'monospace',
+            }}
+          />
+        </div>
+
+        <button
+          onClick={handleSubmitCode}
+          disabled={!oauthCode.trim() || loading}
+          className="btn"
+          style={{
+            width: '100%',
+            padding: '12px',
+            background: oauthCode.trim() ? 'var(--accent-green)' : 'var(--bg-card)',
+            color: oauthCode.trim() ? 'white' : 'var(--text-tertiary)',
+            cursor: oauthCode.trim() && !loading ? 'pointer' : 'not-allowed',
+          }}
+        >
+          {loading ? t('loading') : t('submitCode')}
+        </button>
+
+        {error && (
+          <div style={{ marginTop: '16px', padding: '12px', background: 'rgba(255, 0, 0, 0.1)', borderRadius: '8px', fontSize: '14px', color: '#ff6b6b' }}>
+            {error}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Connected state
+  return (
+    <div className="card" style={{ padding: '24px' }}>
+      <h2 style={{ fontSize: '18px', marginBottom: '16px' }}>{t('calendarSync')}</h2>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', fontSize: '14px', color: 'var(--accent-green)' }}>
+        <span style={{ fontSize: '20px' }}>✓</span>
+        <span>{t('calendarConnected')}</span>
+      </div>
+
+      <button
+        onClick={handleSync}
+        disabled={syncing || !state.sprint}
+        className="btn"
+        style={{
+          width: '100%',
+          padding: '12px',
+          background: syncing ? 'var(--bg-card)' : 'var(--accent-blue)',
+          color: syncing ? 'var(--text-tertiary)' : 'white',
+          marginBottom: '16px',
+          cursor: syncing ? 'not-allowed' : 'pointer',
+        }}
+      >
+        {syncing ? t('syncing') : t('syncNow')}
+      </button>
+
+      {syncResult && (
+        <div style={{ marginBottom: '16px', padding: '12px', background: 'var(--bg-primary)', borderRadius: '8px', fontSize: '14px' }}>
+          <div>{t('syncResultCreated', { count: syncResult.created })}</div>
+          <div>{t('syncResultUpdated', { count: syncResult.updated })}</div>
+          <div>{t('syncResultDeleted', { count: syncResult.deleted })}</div>
+        </div>
+      )}
+
+      {events.length > 0 && (
+        <div>
+          <h3 style={{ fontSize: '16px', marginBottom: '12px' }}>{t('thisWeekEvents')}</h3>
+          {events.map((event) => (
+            <div
+              key={event.id}
+              style={{
+                marginBottom: '8px',
+                padding: '8px 12px',
+                background: event.fromSprint ? 'rgba(78, 205, 196, 0.1)' : 'var(--bg-primary)',
+                borderRadius: '8px',
+                borderLeft: event.fromSprint ? '3px solid var(--accent-green)' : '3px solid var(--border-subtle)',
+                fontSize: '14px',
+              }}
+            >
+              <div style={{ fontWeight: '500' }}>{event.summary}</div>
+              <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                {new Date(event.start).toLocaleDateString()}
+                {event.fromSprint && ' · Sprint'}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {error && (
+        <div style={{ marginTop: '16px', padding: '12px', background: 'rgba(255, 0, 0, 0.1)', borderRadius: '8px', fontSize: '14px', color: '#ff6b6b' }}>
+          {error}
+        </div>
+      )}
     </div>
   );
 }

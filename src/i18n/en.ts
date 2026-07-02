@@ -49,6 +49,18 @@ export const en = {
   notePlaceholder: 'What worked? What to improve?',
   calendarSync: 'Google Calendar sync',
   comingSoon: 'Coming soon',
+  calendarSyncDesc: 'Connect Google Calendar to automatically sync your scheduled tasks.',
+  connectGoogleCalendar: 'Connect Google Calendar',
+  pasteAuthCode: 'Paste authorization code or URL:',
+  submitCode: 'Submit',
+  calendarConnected: 'Google Calendar connected',
+  syncNow: 'Sync now',
+  syncing: 'Syncing...',
+  syncResultCreated: 'Created: {{count}}',
+  syncResultUpdated: 'Updated: {{count}}',
+  syncResultDeleted: 'Deleted: {{count}}',
+  thisWeekEvents: "This week's events",
+  calendarError: 'Calendar connection error',
 
   // Setup wizard
   setupTitle: 'New sprint',
