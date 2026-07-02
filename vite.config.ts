@@ -5,7 +5,10 @@ import tsconfigPaths from 'vite-tsconfig-paths';
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  base: '/reactjs-template/',
+  base: '/sprint-planner-tma/',
+  test: {
+    environment: 'happy-dom',
+  },
   css: {
     preprocessorOptions: {
       scss: {
