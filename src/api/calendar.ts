@@ -1,6 +1,6 @@
 import type { Sprint } from '@/model/types';
 
-const API_BASE = 'https://s1.catbank.app:9510';
+const API_BASE = 'https://s1.catbank.app:9460/sprint-api';
 
 export interface OAuthStatus {
   connected: boolean;
