@@ -269,7 +269,11 @@ await test('Week: drag&drop — перенос Пн→Вт мышью за хэ�
   await page.waitForSelector(tid('drop-day-1')); // при drag видны все дни
   const db = await page.locator(tid('drop-day-1')).boundingBox();
   await page.mouse.move(db.x + db.width / 2, db.y + Math.min(db.height / 2, 40), { steps: 12 });
-  await page.waitForTimeout(200);
+  await page.waitForTimeout(250);
+  // автоскролл мог сместить зоны — замеряем заново и доводим курсор
+  const db2 = await page.locator(tid('drop-day-1')).boundingBox();
+  await page.mouse.move(db2.x + db2.width / 2, db2.y + Math.min(db2.height / 2, 30), { steps: 4 });
+  await page.waitForTimeout(150);
   await page.mouse.up();
   await page.waitForTimeout(500);
   const day = await page.evaluate((taskId) => {
