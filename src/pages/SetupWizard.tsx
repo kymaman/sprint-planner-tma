@@ -4,10 +4,11 @@ import { useT } from '@/i18n';
 import { useSprintStore } from '@/store';
 import type { Sprint, Goal, Habit, Task } from '@/model/types';
 
-const GOAL_COLORS = ['#4D9FFF', '#FF6B6B', '#3DDC97'];
+const GOAL_COLORS = ['#3ee0ff', '#ff7a63', '#37e58c'];
+const TOTAL_STEPS = 6;
 
 export function SetupWizard() {
-  const { t } = useT();
+  const { t, lang } = useT();
   const { setSprint } = useSprintStore();
   const navigate = useNavigate();
 
@@ -67,81 +68,76 @@ export function SetupWizard() {
     navigate('/');
   };
 
+  const navBtns = (onBack: (() => void) | null, onNext: () => void, nextLabel?: string) => (
+    <div style={{ display: 'flex', gap: 10, marginTop: 22 }}>
+      {onBack && (
+        <button onClick={onBack} className="btn btn-ghost" style={{ flex: 1 }}>
+          {t('prevStep')}
+        </button>
+      )}
+      <button onClick={onNext} className="btn btn-primary" style={{ flex: 2 }}>
+        {nextLabel || t('nextStep')}
+      </button>
+    </div>
+  );
+
+  // Шаги 3–5: задачи для целей 0–2
+  const goalIdx = step - 3;
+
   return (
-    <div style={{
-      minHeight: '100vh',
-      padding: '20px',
-      paddingBottom: '100px',
-      background: 'var(--bg-primary)'
-    }}>
-      <h1 style={{ fontSize: '28px', marginBottom: '24px' }}>{t('setupTitle')}</h1>
+    <div className="page" style={{ paddingBottom: 40 }}>
+      {/* Header */}
+      <div style={{ marginBottom: 18 }}>
+        <div className="page-kicker">{lang === 'ru' ? '90-дневный спринт' : '90-day sprint'}</div>
+        <h1 className="page-title">{t('setupTitle')}</h1>
+        <div className="page-sub">{lang === 'ru' ? `Шаг ${step} из ${TOTAL_STEPS}` : `Step ${step} of ${TOTAL_STEPS}`}</div>
+      </div>
+
+      {/* Progress dots */}
+      <div className="steps">
+        {Array.from({ length: TOTAL_STEPS }, (_, i) => (
+          <div key={i} className={`step-dot ${i < step ? 'done' : ''}`} />
+        ))}
+      </div>
 
       {/* Step 1: Sprint Info */}
       {step === 1 && (
         <div>
-          <h2 style={{ fontSize: '20px', marginBottom: '16px', color: 'var(--text-secondary)' }}>
-            {t('sprintInfo')}
-          </h2>
+          <div className="section-label cyan">✦ {t('sprintInfo')}</div>
 
-          <div className="card" style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: 'var(--text-secondary)' }}>
-              {t('sprintName')}
-            </label>
+          <div className="card card-hero" style={{ marginBottom: 12 }}>
+            <label className="input-label">{t('sprintName')}</label>
             <input
               type="text"
               value={sprintName}
               onChange={e => setSprintName(e.target.value)}
               placeholder={t('sprintNamePlaceholder')}
-              style={{
-                width: '100%',
-                padding: '12px',
-                background: 'var(--bg-primary)',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: '12px',
-                color: 'var(--text-primary)',
-                fontSize: '16px',
-              }}
+              className="input"
+              style={{ marginBottom: 16 }}
             />
-          </div>
 
-          <div className="card" style={{ marginBottom: '24px' }}>
-            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: 'var(--text-secondary)' }}>
-              {t('startDate')}
-            </label>
+            <label className="input-label">{t('startDate')}</label>
             <input
               type="date"
               value={startDate}
               onChange={e => setStartDate(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '12px',
-                background: 'var(--bg-primary)',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: '12px',
-                color: 'var(--text-primary)',
-                fontSize: '16px',
-              }}
+              className="input"
             />
           </div>
 
-          <button onClick={() => setStep(2)} className="btn btn-primary" style={{ width: '100%' }}>
-            {t('nextStep')}
-          </button>
+          {navBtns(null, () => setStep(2))}
         </div>
       )}
 
       {/* Step 2: Goals */}
       {step === 2 && (
         <div>
-          <h2 style={{ fontSize: '20px', marginBottom: '16px', color: 'var(--text-secondary)' }}>
-            {t('goalsSetup')}
-          </h2>
+          <div className="section-label cyan">◎ {t('goalsSetup')}</div>
 
           {[0, 1, 2].map(i => (
-            <div key={i} className="card" style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: 'var(--text-secondary)' }}>
-                {t('goalTitle', { number: i + 1 })}
-              </label>
+            <div key={i} className="card" style={{ marginBottom: 12 }}>
+              <div className="goal-rail" style={{ background: GOAL_COLORS[selectedColors[i]] }} />
+              <label className="input-label">{t('goalTitle', { number: i + 1 })}</label>
               <input
                 type="text"
                 value={goalTitles[i]}
@@ -151,19 +147,11 @@ export function SetupWizard() {
                   setGoalTitles(newTitles);
                 }}
                 placeholder={t('goalPlaceholder')}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  background: 'var(--bg-primary)',
-                  border: '1px solid var(--border-subtle)',
-                  borderRadius: '12px',
-                  color: 'var(--text-primary)',
-                  fontSize: '16px',
-                  marginBottom: '12px',
-                }}
+                className="input"
+                style={{ marginBottom: 14 }}
               />
 
-              <div style={{ display: 'flex', gap: '8px' }}>
+              <div style={{ display: 'flex', gap: 10 }}>
                 {GOAL_COLORS.map((color, colorIdx) => (
                   <button
                     key={colorIdx}
@@ -173,12 +161,14 @@ export function SetupWizard() {
                       setSelectedColors(newColors);
                     }}
                     style={{
-                      width: '40px',
-                      height: '40px',
-                      borderRadius: '8px',
+                      width: 38,
+                      height: 38,
+                      borderRadius: 12,
                       background: color,
-                      border: selectedColors[i] === colorIdx ? '3px solid white' : '1px solid var(--border-subtle)',
+                      border: selectedColors[i] === colorIdx ? '2.5px solid #fff' : '2.5px solid transparent',
+                      boxShadow: selectedColors[i] === colorIdx ? `0 0 14px ${color}` : 'none',
                       cursor: 'pointer',
+                      transition: 'all 0.2s ease',
                     }}
                   />
                 ))}
@@ -186,169 +176,54 @@ export function SetupWizard() {
             </div>
           ))}
 
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button onClick={() => setStep(1)} className="btn" style={{ flex: 1, background: 'var(--bg-card)' }}>
-              {t('prevStep')}
-            </button>
-            <button onClick={() => setStep(3)} className="btn btn-primary" style={{ flex: 1 }}>
-              {t('nextStep')}
-            </button>
-          </div>
+          {navBtns(() => setStep(1), () => setStep(3))}
         </div>
       )}
 
-      {/* Step 3: Tasks */}
-      {step === 3 && (
+      {/* Steps 3–5: Tasks per goal */}
+      {step >= 3 && step <= 5 && (
         <div>
-          <h2 style={{ fontSize: '20px', marginBottom: '16px', color: 'var(--text-secondary)' }}>
-            {t('tasksSetup', { goal: goalTitles[0] || 'Goal 1' })}
-          </h2>
+          <div className="section-label" style={{ color: GOAL_COLORS[selectedColors[goalIdx]] }}>
+            ▸ {t('tasksSetup', { goal: goalTitles[goalIdx] || `${lang === 'ru' ? 'Цель' : 'Goal'} ${goalIdx + 1}` })}
+          </div>
 
-          <div className="card" style={{ marginBottom: '24px' }}>
+          <div className="card" style={{ marginBottom: 12 }}>
+            <div className="goal-rail" style={{ background: GOAL_COLORS[selectedColors[goalIdx]] }} />
             {Array.from({ length: 9 }, (_, weekIdx) => (
-              <div key={weekIdx} style={{ marginBottom: '12px' }}>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '12px', color: 'var(--text-tertiary)' }}>
-                  {t('taskForWeek', { week: weekIdx + 1 })}
-                </label>
+              <div key={weekIdx} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 9 }}>
+                <div className="task-num" style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-tertiary)', borderColor: 'var(--glass-border)' }}>
+                  {weekIdx + 1}
+                </div>
                 <input
                   type="text"
-                  value={tasksByGoal[0][weekIdx]}
+                  value={tasksByGoal[goalIdx][weekIdx]}
                   onChange={e => {
-                    const newTasks = [...tasksByGoal];
-                    newTasks[0][weekIdx] = e.target.value;
+                    const newTasks = tasksByGoal.map(arr => [...arr]);
+                    newTasks[goalIdx][weekIdx] = e.target.value;
                     setTasksByGoal(newTasks);
                   }}
                   placeholder={t('taskPlaceholder', { week: weekIdx + 1 })}
-                  style={{
-                    width: '100%',
-                    padding: '8px',
-                    background: 'var(--bg-primary)',
-                    border: '1px solid var(--border-subtle)',
-                    borderRadius: '8px',
-                    color: 'var(--text-primary)',
-                    fontSize: '14px',
-                  }}
+                  className="input"
+                  style={{ padding: '10px 12px', fontSize: 14.5 }}
                 />
               </div>
             ))}
           </div>
 
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button onClick={() => setStep(2)} className="btn" style={{ flex: 1, background: 'var(--bg-card)' }}>
-              {t('prevStep')}
-            </button>
-            <button onClick={() => setStep(4)} className="btn btn-primary" style={{ flex: 1 }}>
-              {t('nextStep')}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Step 4: More tasks */}
-      {step === 4 && (
-        <div>
-          <h2 style={{ fontSize: '20px', marginBottom: '16px', color: 'var(--text-secondary)' }}>
-            {t('tasksSetup', { goal: goalTitles[1] || 'Goal 2' })}
-          </h2>
-
-          <div className="card" style={{ marginBottom: '24px' }}>
-            {Array.from({ length: 9 }, (_, weekIdx) => (
-              <div key={weekIdx} style={{ marginBottom: '12px' }}>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '12px', color: 'var(--text-tertiary)' }}>
-                  {t('taskForWeek', { week: weekIdx + 1 })}
-                </label>
-                <input
-                  type="text"
-                  value={tasksByGoal[1][weekIdx]}
-                  onChange={e => {
-                    const newTasks = [...tasksByGoal];
-                    newTasks[1][weekIdx] = e.target.value;
-                    setTasksByGoal(newTasks);
-                  }}
-                  placeholder={t('taskPlaceholder', { week: weekIdx + 1 })}
-                  style={{
-                    width: '100%',
-                    padding: '8px',
-                    background: 'var(--bg-primary)',
-                    border: '1px solid var(--border-subtle)',
-                    borderRadius: '8px',
-                    color: 'var(--text-primary)',
-                    fontSize: '14px',
-                  }}
-                />
-              </div>
-            ))}
-          </div>
-
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button onClick={() => setStep(3)} className="btn" style={{ flex: 1, background: 'var(--bg-card)' }}>
-              {t('prevStep')}
-            </button>
-            <button onClick={() => setStep(5)} className="btn btn-primary" style={{ flex: 1 }}>
-              {t('nextStep')}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Step 5: More tasks */}
-      {step === 5 && (
-        <div>
-          <h2 style={{ fontSize: '20px', marginBottom: '16px', color: 'var(--text-secondary)' }}>
-            {t('tasksSetup', { goal: goalTitles[2] || 'Goal 3' })}
-          </h2>
-
-          <div className="card" style={{ marginBottom: '24px' }}>
-            {Array.from({ length: 9 }, (_, weekIdx) => (
-              <div key={weekIdx} style={{ marginBottom: '12px' }}>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '12px', color: 'var(--text-tertiary)' }}>
-                  {t('taskForWeek', { week: weekIdx + 1 })}
-                </label>
-                <input
-                  type="text"
-                  value={tasksByGoal[2][weekIdx]}
-                  onChange={e => {
-                    const newTasks = [...tasksByGoal];
-                    newTasks[2][weekIdx] = e.target.value;
-                    setTasksByGoal(newTasks);
-                  }}
-                  placeholder={t('taskPlaceholder', { week: weekIdx + 1 })}
-                  style={{
-                    width: '100%',
-                    padding: '8px',
-                    background: 'var(--bg-primary)',
-                    border: '1px solid var(--border-subtle)',
-                    borderRadius: '8px',
-                    color: 'var(--text-primary)',
-                    fontSize: '14px',
-                  }}
-                />
-              </div>
-            ))}
-          </div>
-
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button onClick={() => setStep(4)} className="btn" style={{ flex: 1, background: 'var(--bg-card)' }}>
-              {t('prevStep')}
-            </button>
-            <button onClick={() => setStep(6)} className="btn btn-primary" style={{ flex: 1 }}>
-              {t('nextStep')}
-            </button>
-          </div>
+          {navBtns(() => setStep(step - 1), () => setStep(step + 1))}
         </div>
       )}
 
       {/* Step 6: Habits */}
       {step === 6 && (
         <div>
-          <h2 style={{ fontSize: '20px', marginBottom: '16px', color: 'var(--text-secondary)' }}>
-            {t('habitsSetup')}
-          </h2>
+          <div className="section-label green">✦ {t('habitsSetup')}</div>
 
           {[0, 1, 2].map(i => (
-            <div key={i} className="card" style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: 'var(--text-secondary)' }}>
-                {t('habitFor', { goal: goalTitles[i] || `Goal ${i + 1}` })}
+            <div key={i} className="card" style={{ marginBottom: 12 }}>
+              <div className="goal-rail" style={{ background: GOAL_COLORS[selectedColors[i]] }} />
+              <label className="input-label">
+                {t('habitFor', { goal: goalTitles[i] || `${lang === 'ru' ? 'Цель' : 'Goal'} ${i + 1}` })}
               </label>
               <input
                 type="text"
@@ -359,27 +234,12 @@ export function SetupWizard() {
                   setHabitTitles(newHabits);
                 }}
                 placeholder={t('habitPlaceholder')}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  background: 'var(--bg-primary)',
-                  border: '1px solid var(--border-subtle)',
-                  borderRadius: '12px',
-                  color: 'var(--text-primary)',
-                  fontSize: '16px',
-                }}
+                className="input"
               />
             </div>
           ))}
 
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button onClick={() => setStep(5)} className="btn" style={{ flex: 1, background: 'var(--bg-card)' }}>
-              {t('prevStep')}
-            </button>
-            <button onClick={handleFinish} className="btn btn-primary" style={{ flex: 1 }}>
-              {t('finish')}
-            </button>
-          </div>
+          {navBtns(() => setStep(5), handleFinish, `🚀 ${t('finish')}`)}
         </div>
       )}
     </div>

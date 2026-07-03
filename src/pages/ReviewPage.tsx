@@ -14,7 +14,7 @@ import {
 } from '@/api/calendar';
 
 export function ReviewPage() {
-  const { t } = useT();
+  const { t, lang } = useT();
   const { state, setWeekNote, updateSprint } = useSprintStore();
   const [selectedWeek, setSelectedWeek] = useState(
     state.sprint ? Math.max(1, currentWeek(state.sprint, new Date()) - 1) : 1
@@ -27,6 +27,7 @@ export function ReviewPage() {
   const stats = weekStats(state.sprint, selectedWeek);
   const unfinished = unfinishedTasks(state.sprint, selectedWeek);
   const note = state.sprint.weekNotes[selectedWeek] || '';
+  const habitsDone = state.sprint.goals.reduce((acc, g) => acc + Object.values(g.habit.checks).filter(Boolean).length, 0);
 
   const handleCarryOver = (taskId: string) => {
     const updated = carryOverTask(state.sprint!, taskId);
@@ -34,39 +35,48 @@ export function ReviewPage() {
   };
 
   return (
-    <div style={{ padding: '16px', paddingBottom: '80px' }}>
-      <h1 style={{ fontSize: '28px', marginBottom: '24px' }}>{t('reviewTitle')}</h1>
-
-      {/* Week selector */}
-      <div style={{ marginBottom: '24px', overflowX: 'auto' }}>
-        <div style={{ display: 'flex', gap: '8px', minWidth: 'min-content' }}>
-          {Array.from({ length: 9 }, (_, i) => i + 1).map(week => (
-            <button
-              key={week}
-              onClick={() => setSelectedWeek(week)}
-              className={selectedWeek === week ? 'btn btn-primary' : 'btn'}
-              style={{
-                minWidth: '60px',
-                background: selectedWeek === week ? 'var(--accent-blue)' : 'var(--bg-card)',
-                color: selectedWeek === week ? 'white' : 'var(--text-primary)',
-              }}
-            >
-              {week}
-            </button>
-          ))}
-        </div>
+    <div className="page">
+      {/* Header */}
+      <div style={{ marginBottom: 16 }}>
+        <div className="page-kicker">{lang === 'ru' ? 'Итоги и синк' : 'Results & sync'}</div>
+        <h1 className="page-title">{t('reviewTitle')}</h1>
       </div>
 
-      {/* Stats */}
-      <div className="card" style={{ marginBottom: '24px' }}>
-        <h2 style={{ fontSize: '18px', marginBottom: '16px' }}>{t('weekStats')}</h2>
+      {/* Week selector */}
+      <div className="chip-row" style={{ marginBottom: 6 }}>
+        {Array.from({ length: 9 }, (_, i) => i + 1).map(week => (
+          <button
+            key={week}
+            onClick={() => setSelectedWeek(week)}
+            className={`chip ${selectedWeek === week ? 'active' : ''}`}
+          >
+            {week}
+          </button>
+        ))}
+      </div>
 
-        <div style={{ fontSize: '24px', fontWeight: '600', marginBottom: '16px' }}>
-          {t('completedTasks', { done: stats.done, total: stats.total })}
-        </div>
+      {/* Weekly performance */}
+      <div className="section-label cyan">▮ {t('weekStats')}</div>
 
-        <div style={{ marginBottom: '8px', fontSize: '14px', color: 'var(--text-secondary)' }}>
-          By goal:
+      <div className="card card-hero" style={{ marginBottom: 12 }}>
+        <div style={{ display: 'flex', gap: 12, marginBottom: 18 }}>
+          <div className="card-inset" style={{ flex: 1 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: 8 }}>
+              {lang === 'ru' ? 'Задачи' : 'Tasks'}
+            </div>
+            <div className="stat-big">
+              <span style={{ color: 'var(--cyan)', textShadow: '0 0 16px rgba(62,224,255,0.5)' }}>{stats.done}</span>
+              <span className="of">/{stats.total}</span>
+            </div>
+          </div>
+          <div className="card-inset" style={{ flex: 1 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: 8 }}>
+              {lang === 'ru' ? 'Привычки' : 'Habits'}
+            </div>
+            <div className="stat-big">
+              <span style={{ color: 'var(--green)', textShadow: '0 0 16px rgba(55,229,140,0.5)' }}>{habitsDone}</span>
+            </div>
+          </div>
         </div>
 
         {stats.perGoal.map(g => {
@@ -74,33 +84,24 @@ export function ReviewPage() {
           const percent = g.total > 0 ? (g.done / g.total) * 100 : 0;
 
           return (
-            <div key={g.goalId} style={{ marginBottom: '12px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '14px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <div style={{
-                    width: '12px',
-                    height: '12px',
-                    borderRadius: '50%',
-                    background: goal?.color,
-                  }} />
-                  <span>{g.goalTitle}</span>
+            <div key={g.goalId} style={{ marginBottom: 12 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, fontSize: 13.5 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                  <span className="habit-dot" style={{ background: goal?.color, color: goal?.color, width: 8, height: 8 }} />
+                  <span style={{ fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{g.goalTitle}</span>
                 </div>
-                <span className="text-secondary">{g.done}/{g.total}</span>
+                <span className="text-tertiary" style={{ fontWeight: 600 }}>{g.done}/{g.total}</span>
               </div>
 
-              <div style={{
-                width: '100%',
-                height: '6px',
-                background: 'var(--bg-primary)',
-                borderRadius: '3px',
-                overflow: 'hidden',
-              }}>
-                <div style={{
-                  width: `${percent}%`,
-                  height: '100%',
-                  background: goal?.color,
-                  transition: 'width 0.3s ease',
-                }} />
+              <div className="bar-track" style={{ height: 6 }}>
+                <div
+                  className="bar-fill"
+                  style={{
+                    width: `${percent}%`,
+                    background: goal?.color,
+                    boxShadow: `0 0 10px ${goal?.color}`,
+                  }}
+                />
               </div>
             </div>
           );
@@ -109,76 +110,45 @@ export function ReviewPage() {
 
       {/* Unfinished tasks */}
       {unfinished.length > 0 && (
-        <div style={{ marginBottom: '24px' }}>
-          <h2 style={{ fontSize: '18px', marginBottom: '12px' }}>{t('unfinishedTasks')}</h2>
+        <>
+          <div className="section-label coral">↻ {t('unfinishedTasks')}</div>
 
           {unfinished.map(task => {
             const goal = state.sprint!.goals.find(g => g.id === task.goalId);
             return (
-              <div
-                key={task.id}
-                className="card"
-                style={{
-                  marginBottom: '12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '12px',
-                  borderLeft: `4px solid ${goal?.color || '#fff'}`,
-                }}
-              >
-                <div style={{ flex: 1, fontSize: '16px' }}>{task.title}</div>
+              <div key={task.id} className="card task-row">
+                <div className="goal-rail" style={{ background: goal?.color }} />
+                <div className="task-title" style={{ flex: 1, minWidth: 0 }}>{task.title}</div>
 
-                <button
-                  onClick={() => handleCarryOver(task.id)}
-                  className="btn"
-                  style={{
-                    padding: '8px 12px',
-                    fontSize: '14px',
-                    background: 'var(--accent-blue)',
-                    color: 'white',
-                  }}
-                >
+                <button onClick={() => handleCarryOver(task.id)} className="btn btn-ghost" style={{ padding: '9px 14px', fontSize: 13.5, flexShrink: 0 }}>
                   {t('carryOver')}
                 </button>
               </div>
             );
           })}
-        </div>
+        </>
       )}
 
       {/* Week note */}
-      <div className="card" style={{ marginBottom: '24px' }}>
-        <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: 'var(--text-secondary)' }}>
-          {t('weekNote')}
-        </label>
+      <div className="section-label">✎ {t('weekNote')}</div>
+
+      <div className="card" style={{ marginBottom: 12 }}>
         <textarea
           value={note}
           onChange={e => setWeekNote(selectedWeek, e.target.value)}
           placeholder={t('notePlaceholder')}
-          style={{
-            width: '100%',
-            minHeight: '120px',
-            padding: '12px',
-            background: 'var(--bg-primary)',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: '12px',
-            color: 'var(--text-primary)',
-            fontSize: '16px',
-            fontFamily: 'inherit',
-            resize: 'vertical',
-          }}
+          className="input"
+          style={{ minHeight: 110, resize: 'vertical', border: 'none', background: 'transparent', padding: 2 }}
         />
       </div>
 
-      {/* Calendar sync placeholder */}
       <CalendarSection />
     </div>
   );
 }
 
 function CalendarSection() {
-  const { t } = useT();
+  const { t, lang } = useT();
   const { state, updateTask } = useSprintStore();
   const initDataRaw = useRawInitData();
 
@@ -255,7 +225,6 @@ function CalendarSection() {
 
       const result = await syncSprint(initDataRaw, state.sprint);
 
-      // Apply two-way sync changes
       if (result.changedTasks.length > 0) {
         for (const change of result.changedTasks) {
           updateTask(change.taskId, { week: change.newWeek, day: change.newDay });
@@ -268,7 +237,6 @@ function CalendarSection() {
         deleted: result.deleted,
       });
 
-      // Load this week's events
       await loadWeekEvents();
     } catch (err) {
       if (err instanceof CalendarAPIError) {
@@ -302,149 +270,119 @@ function CalendarSection() {
     }
   }
 
+  const errorBox = error && (
+    <div style={{
+      marginTop: 14, padding: '11px 13px',
+      background: 'rgba(255, 82, 82, 0.1)',
+      border: '1px solid rgba(255, 82, 82, 0.28)',
+      borderRadius: 12, fontSize: 13.5, color: 'var(--coral)',
+    }}>
+      {error}
+    </div>
+  );
+
   if (loading && !connected) {
     return (
-      <div className="card" style={{ textAlign: 'center', padding: '24px' }}>
-        <div style={{ fontSize: '16px', color: 'var(--text-secondary)' }}>
-          {t('loading')}
-        </div>
-      </div>
+      <>
+        <div className="section-label green">⇄ {lang === 'ru' ? 'Календарь' : 'Calendar'}</div>
+        <div className="card empty-state">{t('loading')}</div>
+      </>
     );
   }
 
   if (!connected) {
     return (
-      <div className="card" style={{ padding: '24px' }}>
-        <h2 style={{ fontSize: '18px', marginBottom: '16px' }}>{t('calendarSync')}</h2>
+      <>
+        <div className="section-label green">⇄ {lang === 'ru' ? 'Календарь' : 'Calendar'}</div>
+        <div className="card">
+          <h2 style={{ fontSize: 16.5, fontWeight: 700, margin: '0 0 8px' }}>{t('calendarSync')}</h2>
 
-        <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
-          {t('calendarSyncDesc')}
-        </p>
+          <p style={{ fontSize: 13.5, color: 'var(--text-secondary)', margin: '0 0 16px', lineHeight: 1.45 }}>
+            {t('calendarSyncDesc')}
+          </p>
 
-        <button
-          onClick={handleConnect}
-          className="btn"
-          style={{
-            width: '100%',
-            padding: '12px',
-            background: 'var(--accent-blue)',
-            color: 'white',
-            marginBottom: '16px',
-          }}
-        >
-          {t('connectGoogleCalendar')}
-        </button>
+          <button onClick={handleConnect} className="btn btn-primary" style={{ width: '100%', marginBottom: 16 }}>
+            {t('connectGoogleCalendar')}
+          </button>
 
-        <div style={{ marginBottom: '12px' }}>
-          <label style={{ display: 'block', fontSize: '14px', marginBottom: '8px', color: 'var(--text-secondary)' }}>
-            {t('pasteAuthCode')}
-          </label>
+          <label className="input-label">{t('pasteAuthCode')}</label>
           <input
             type="text"
             value={oauthCode}
             onChange={(e) => setOauthCode(e.target.value)}
             placeholder="http://localhost/?code=..."
-            style={{
-              width: '100%',
-              padding: '12px',
-              background: 'var(--bg-primary)',
-              border: '1px solid var(--border-subtle)',
-              borderRadius: '12px',
-              color: 'var(--text-primary)',
-              fontSize: '14px',
-              fontFamily: 'monospace',
-            }}
+            className="input"
+            style={{ fontFamily: 'monospace', fontSize: 13.5, marginBottom: 12 }}
           />
+
+          <button
+            onClick={handleSubmitCode}
+            disabled={!oauthCode.trim() || loading}
+            className={`btn ${oauthCode.trim() ? 'btn-green' : 'btn-ghost'}`}
+            style={{ width: '100%' }}
+          >
+            {loading ? t('loading') : t('submitCode')}
+          </button>
+
+          {errorBox}
         </div>
-
-        <button
-          onClick={handleSubmitCode}
-          disabled={!oauthCode.trim() || loading}
-          className="btn"
-          style={{
-            width: '100%',
-            padding: '12px',
-            background: oauthCode.trim() ? 'var(--accent-green)' : 'var(--bg-card)',
-            color: oauthCode.trim() ? 'white' : 'var(--text-tertiary)',
-            cursor: oauthCode.trim() && !loading ? 'pointer' : 'not-allowed',
-          }}
-        >
-          {loading ? t('loading') : t('submitCode')}
-        </button>
-
-        {error && (
-          <div style={{ marginTop: '16px', padding: '12px', background: 'rgba(255, 0, 0, 0.1)', borderRadius: '8px', fontSize: '14px', color: '#ff6b6b' }}>
-            {error}
-          </div>
-        )}
-      </div>
+      </>
     );
   }
 
   // Connected state
   return (
-    <div className="card" style={{ padding: '24px' }}>
-      <h2 style={{ fontSize: '18px', marginBottom: '16px' }}>{t('calendarSync')}</h2>
-
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', fontSize: '14px', color: 'var(--accent-green)' }}>
-        <span style={{ fontSize: '20px' }}>✓</span>
-        <span>{t('calendarConnected')}</span>
-      </div>
-
-      <button
-        onClick={handleSync}
-        disabled={syncing || !state.sprint}
-        className="btn"
-        style={{
-          width: '100%',
-          padding: '12px',
-          background: syncing ? 'var(--bg-card)' : 'var(--accent-blue)',
-          color: syncing ? 'var(--text-tertiary)' : 'white',
-          marginBottom: '16px',
-          cursor: syncing ? 'not-allowed' : 'pointer',
-        }}
-      >
-        {syncing ? t('syncing') : t('syncNow')}
-      </button>
-
-      {syncResult && (
-        <div style={{ marginBottom: '16px', padding: '12px', background: 'var(--bg-primary)', borderRadius: '8px', fontSize: '14px' }}>
-          <div>{t('syncResultCreated', { count: syncResult.created })}</div>
-          <div>{t('syncResultUpdated', { count: syncResult.updated })}</div>
-          <div>{t('syncResultDeleted', { count: syncResult.deleted })}</div>
+    <>
+      <div className="section-label green">⇄ {lang === 'ru' ? 'Календарь' : 'Calendar'}</div>
+      <div className="card">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 16 }}>
+          <h2 style={{ fontSize: 16.5, fontWeight: 700, margin: 0 }}>{t('calendarSync')}</h2>
+          <span className="badge badge-green">✓ {lang === 'ru' ? 'Подключён' : 'Connected'}</span>
         </div>
-      )}
 
-      {events.length > 0 && (
-        <div>
-          <h3 style={{ fontSize: '16px', marginBottom: '12px' }}>{t('thisWeekEvents')}</h3>
-          {events.map((event) => (
-            <div
-              key={event.id}
-              style={{
-                marginBottom: '8px',
-                padding: '8px 12px',
-                background: event.fromSprint ? 'rgba(78, 205, 196, 0.1)' : 'var(--bg-primary)',
-                borderRadius: '8px',
-                borderLeft: event.fromSprint ? '3px solid var(--accent-green)' : '3px solid var(--border-subtle)',
-                fontSize: '14px',
-              }}
-            >
-              <div style={{ fontWeight: '500' }}>{event.summary}</div>
-              <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                {new Date(event.start).toLocaleDateString()}
-                {event.fromSprint && ' · Sprint'}
-              </div>
+        <button
+          onClick={handleSync}
+          disabled={syncing || !state.sprint}
+          className={`btn ${syncing ? 'btn-ghost' : 'btn-primary'}`}
+          style={{ width: '100%', marginBottom: 14 }}
+        >
+          {syncing ? t('syncing') : `⇄ ${t('syncNow')}`}
+        </button>
+
+        {syncResult && (
+          <div className="card-inset" style={{ marginBottom: 14, display: 'flex', gap: 14, justifyContent: 'space-around', fontSize: 13.5 }}>
+            <span style={{ color: 'var(--green)' }}>+{syncResult.created}</span>
+            <span style={{ color: 'var(--cyan)' }}>↻ {syncResult.updated}</span>
+            <span style={{ color: 'var(--coral)' }}>− {syncResult.deleted}</span>
+          </div>
+        )}
+
+        {events.length > 0 && (
+          <div>
+            <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-tertiary)', margin: '4px 0 10px' }}>
+              {t('thisWeekEvents')}
             </div>
-          ))}
-        </div>
-      )}
+            {events.map((event) => (
+              <div
+                key={event.id}
+                className="card-inset"
+                style={{
+                  marginBottom: 8,
+                  borderLeft: event.fromSprint ? '3px solid var(--green)' : '3px solid var(--glass-border-strong)',
+                }}
+              >
+                <div style={{ fontWeight: 600, fontSize: 14 }}>{event.summary}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 3 }}>
+                  {new Date(event.start).toLocaleDateString(lang === 'ru' ? 'ru-RU' : 'en-US')}
+                  {event.fromSprint && ' · Sprint'}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
-      {error && (
-        <div style={{ marginTop: '16px', padding: '12px', background: 'rgba(255, 0, 0, 0.1)', borderRadius: '8px', fontSize: '14px', color: '#ff6b6b' }}>
-          {error}
-        </div>
-      )}
-    </div>
+        {errorBox}
+      </div>
+    </>
   );
 }
