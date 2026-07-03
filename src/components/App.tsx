@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 
 import { routes } from '@/navigation/routes.tsx';
 import { TabBar } from '@/components/TabBar';
+import { UndoToast } from '@/components/UndoToast';
 import { I18nProvider } from '@/i18n';
 import { SprintStoreProvider, useSprintStore } from '@/store';
 
@@ -29,6 +30,7 @@ function AppContent() {
         </Routes>
       </div>
       {showTabBar && <TabBar />}
+      <UndoToast />
     </div>
   );
 }

@@ -10,11 +10,15 @@ type Action =
   | { type: 'UPDATE_TASK'; taskId: string; updates: Partial<Task> }
   | { type: 'SET_WEEK_NOTE'; week: number; note: string }
   | { type: 'ADD_TASK'; goalId: string; task: Task }
-  | { type: 'DELETE_TASK'; taskId: string };
+  | { type: 'DELETE_TASK'; taskId: string }
+  | { type: 'UNDO_DELETE' }
+  | { type: 'CLEAR_LAST_DELETED' };
 
 interface State {
   sprint: Sprint | null;
   loading: boolean;
+  /** последняя удалённая задача — для «Отменить» */
+  lastDeleted: { goalId: string; task: Task; at: number } | null;
 }
 
 interface SprintStoreContextValue {
@@ -27,6 +31,8 @@ interface SprintStoreContextValue {
   setWeekNote: (week: number, note: string) => void;
   addTask: (goalId: string, task: Task) => void;
   deleteTask: (taskId: string) => void;
+  undoDelete: () => void;
+  clearLastDeleted: () => void;
 }
 
 const SprintStoreContext = createContext<SprintStoreContextValue | null>(null);
@@ -167,13 +173,21 @@ function reducer(state: State, action: Action): State {
     case 'DELETE_TASK': {
       if (!state.sprint) return state;
 
+      let deleted: { goalId: string; task: Task; at: number } | null = null;
       const newGoals = state.sprint.goals.map(goal => ({
         ...goal,
-        tasks: goal.tasks.filter(task => task.id !== action.taskId),
+        tasks: goal.tasks.filter(task => {
+          if (task.id === action.taskId) {
+            deleted = { goalId: goal.id, task, at: Date.now() };
+            return false;
+          }
+          return true;
+        }),
       })) as [Goal, Goal, Goal];
 
       return {
         ...state,
+        lastDeleted: deleted,
         sprint: {
           ...state.sprint,
           goals: newGoals,
@@ -181,6 +195,28 @@ function reducer(state: State, action: Action): State {
         },
       };
     }
+
+    case 'UNDO_DELETE': {
+      if (!state.sprint || !state.lastDeleted) return state;
+      const { goalId, task } = state.lastDeleted;
+
+      const newGoals = state.sprint.goals.map(goal =>
+        goal.id === goalId ? { ...goal, tasks: [...goal.tasks, task] } : goal
+      ) as [Goal, Goal, Goal];
+
+      return {
+        ...state,
+        lastDeleted: null,
+        sprint: {
+          ...state.sprint,
+          goals: newGoals,
+          updatedAt: new Date().toISOString(),
+        },
+      };
+    }
+
+    case 'CLEAR_LAST_DELETED':
+      return state.lastDeleted ? { ...state, lastDeleted: null } : state;
 
     default:
       return state;
@@ -252,6 +288,7 @@ export function SprintStoreProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, {
     sprint: null,
     loading: true,
+    lastDeleted: null,
   });
 
   // Load on mount
@@ -312,6 +349,14 @@ export function SprintStoreProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'DELETE_TASK', taskId });
   }, []);
 
+  const undoDelete = useCallback(() => {
+    dispatch({ type: 'UNDO_DELETE' });
+  }, []);
+
+  const clearLastDeleted = useCallback(() => {
+    dispatch({ type: 'CLEAR_LAST_DELETED' });
+  }, []);
+
   return (
     <SprintStoreContext.Provider
       value={{
@@ -324,6 +369,8 @@ export function SprintStoreProvider({ children }: { children: ReactNode }) {
         setWeekNote,
         addTask,
         deleteTask,
+        undoDelete,
+        clearLastDeleted,
       }}
     >
       {children}

@@ -1,11 +1,22 @@
+import { useState } from 'react';
 import { useT } from '@/i18n';
 import { useSprintStore } from '@/store';
 import { currentWeek, currentDayIndex, tasksForDay, sprintProgress, habitStreak, dayOfWeek } from '@/model/logic';
 import { ProgressRing } from '@/components/ProgressRing';
+import { TaskModal, type TaskModalTarget } from '@/components/TaskModal';
+
+function PencilIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+      <path d="M11.3 2.3a1.6 1.6 0 0 1 2.3 2.3l-7.8 7.8-3 .8.8-3 7.7-7.9Z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 
 export function TodayPage() {
   const { t, lang } = useT();
-  const { state, toggleTask, toggleHabit } = useSprintStore();
+  const { state, toggleTask, toggleHabit, updateTask } = useSprintStore();
+  const [modal, setModal] = useState<TaskModalTarget | null>(null);
 
   if (!state.sprint) {
     return null;
@@ -19,6 +30,17 @@ export function TodayPage() {
 
   const todayTasks = tasksForDay(state.sprint, week, day);
   const doneCount = todayTasks.filter(t => t.done).length;
+
+  // Незавершённые задачи с прошлых недель (боль №1 планировщиков — ручной rollover)
+  const overdue = state.sprint.goals
+    .flatMap(g => g.tasks)
+    .filter(x => !x.done && x.week < week);
+
+  const rolloverAll = () => {
+    overdue.forEach(x =>
+      updateTask(x.id, { week, day: undefined, carriedFrom: x.carriedFrom ?? x.week })
+    );
+  };
 
   const dateStr = today.toLocaleDateString(lang === 'ru' ? 'ru-RU' : 'en-US', {
     weekday: 'long', month: 'long', day: 'numeric',
@@ -38,10 +60,39 @@ export function TodayPage() {
         </div>
       </div>
 
+      {/* Rollover незавершённых с прошлых недель */}
+      {overdue.length > 0 && (
+        <div className="card" data-testid="rollover-card" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ fontSize: 20 }}>⏮</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 14, fontWeight: 600 }}>{t('overdueTasks')}: {overdue.length}</div>
+          </div>
+          <button
+            className="btn-ghost"
+            data-testid="rollover-btn"
+            onClick={rolloverAll}
+            style={{ padding: '10px 12px', fontSize: 13, whiteSpace: 'nowrap' }}
+          >
+            {t('moveAllToWeek', { week })}
+          </button>
+        </div>
+      )}
+
       {/* Today's focus */}
       <div className="section-label cyan">
         ⚡ {t('todayTasks')}
         <span style={{ marginLeft: 'auto', letterSpacing: 0, color: 'var(--text-tertiary)' }}>{doneCount}/{todayTasks.length}</span>
+        <button
+          className="icon-btn"
+          data-testid="today-add-task"
+          aria-label={t('addTask')}
+          onClick={() => setModal({ defaults: { week, day } })}
+          style={{ width: 26, height: 26 }}
+        >
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+            <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+          </svg>
+        </button>
       </div>
 
       {todayTasks.length === 0 && (
@@ -74,6 +125,14 @@ export function TodayPage() {
               )}
             </div>
 
+            <button
+              className="icon-btn"
+              data-testid={`task-edit-${task.id}`}
+              aria-label={t('edit')}
+              onClick={e => { e.stopPropagation(); setModal({ taskId: task.id }); }}
+            >
+              <PencilIcon />
+            </button>
             <div className="task-num">{i + 1}</div>
           </div>
         );
@@ -111,6 +170,8 @@ export function TodayPage() {
           </div>
         );
       })}
+
+      {modal && <TaskModal target={modal} onClose={() => setModal(null)} />}
     </div>
   );
 }

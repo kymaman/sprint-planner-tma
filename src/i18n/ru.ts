@@ -93,6 +93,44 @@ export const ru = {
   cancel: 'Отмена',
   confirm: 'Подтвердить',
 
+  // Task editing
+  editTask: 'Задача',
+  newTask: 'Новая задача',
+  taskTitleLabel: 'Название',
+  goalLabel: 'Цель',
+  weekLabel: 'Неделя',
+  dayLabel: 'День',
+  noDay: 'Без дня',
+  mainTaskLabel: 'Главная задача недели',
+  deleteConfirmTap: 'Точно удалить? Нажмите ещё раз',
+  taskDeleted: 'Задача удалена',
+  undo: 'Отменить',
+  titleRequired: 'Введите название',
+
+  // Goal editing
+  editGoal: 'Цель',
+  goalNameLabel: 'Название цели',
+  habitNameLabel: 'Ежедневная привычка',
+  colorLabel: 'Цвет',
+
+  // Settings extra
+  editSprintInfo: 'Название и дата',
+  dataSection: 'Данные',
+  exportData: 'Скопировать бэкап (JSON)',
+  importData: 'Восстановить из бэкапа',
+  importPlaceholder: 'Вставьте JSON бэкапа…',
+  copied: 'Скопировано ✓',
+  importOk: 'Данные восстановлены ✓',
+  importErr: 'Не похоже на бэкап спринта',
+  dangerZone: 'Опасная зона',
+  newSprint: 'Начать новый спринт',
+  newSprintHint: 'Текущий спринт будет удалён. Сначала сделайте бэкап.',
+  saved: 'Сохранено ✓',
+
+  // Rollover
+  overdueTasks: 'Незавершённые с прошлых недель',
+  moveAllToWeek: 'Перенести в неделю {{week}} →',
+
   // Common
   done: 'Готово',
   notDone: 'Не готово',
@@ -100,6 +138,7 @@ export const ru = {
   delete: 'Удалить',
   edit: 'Редактировать',
   loading: 'Загрузка...',
+  back: 'Назад',
 };
 
 export type TranslationKeys = keyof typeof ru;

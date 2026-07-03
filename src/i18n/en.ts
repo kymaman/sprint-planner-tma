@@ -93,6 +93,44 @@ export const en = {
   cancel: 'Cancel',
   confirm: 'Confirm',
 
+  // Task editing
+  editTask: 'Task',
+  newTask: 'New task',
+  taskTitleLabel: 'Title',
+  goalLabel: 'Goal',
+  weekLabel: 'Week',
+  dayLabel: 'Day',
+  noDay: 'No day',
+  mainTaskLabel: 'Main task of the week',
+  deleteConfirmTap: 'Delete for sure? Tap again',
+  taskDeleted: 'Task deleted',
+  undo: 'Undo',
+  titleRequired: 'Enter a title',
+
+  // Goal editing
+  editGoal: 'Goal',
+  goalNameLabel: 'Goal name',
+  habitNameLabel: 'Daily habit',
+  colorLabel: 'Color',
+
+  // Settings extra
+  editSprintInfo: 'Name & date',
+  dataSection: 'Data',
+  exportData: 'Copy backup (JSON)',
+  importData: 'Restore from backup',
+  importPlaceholder: 'Paste backup JSON…',
+  copied: 'Copied ✓',
+  importOk: 'Data restored ✓',
+  importErr: 'Does not look like a sprint backup',
+  dangerZone: 'Danger zone',
+  newSprint: 'Start a new sprint',
+  newSprintHint: 'Current sprint will be deleted. Make a backup first.',
+  saved: 'Saved ✓',
+
+  // Rollover
+  overdueTasks: 'Unfinished from past weeks',
+  moveAllToWeek: 'Move to week {{week}} →',
+
   // Common
   done: 'Done',
   notDone: 'Not done',
@@ -100,4 +138,5 @@ export const en = {
   delete: 'Delete',
   edit: 'Edit',
   loading: 'Loading...',
+  back: 'Back',
 };

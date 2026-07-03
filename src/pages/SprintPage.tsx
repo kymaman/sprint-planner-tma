@@ -1,11 +1,16 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useT } from '@/i18n';
 import { useSprintStore } from '@/store';
 import { goalProgress, habitStreak, currentWeek, sprintProgress } from '@/model/logic';
 import { ProgressRing } from '@/components/ProgressRing';
+import { GoalModal } from '@/components/GoalModal';
 
 export function SprintPage() {
   const { t, lang } = useT();
   const { state } = useSprintStore();
+  const navigate = useNavigate();
+  const [editGoalId, setEditGoalId] = useState<string | null>(null);
 
   if (!state.sprint) {
     return null;
@@ -25,10 +30,24 @@ export function SprintPage() {
   return (
     <div className="page">
       {/* Header */}
-      <div style={{ marginBottom: 18 }}>
-        <div className="page-kicker">{lang === 'ru' ? '90-дневный путь' : '90-day journey'}</div>
-        <h1 className="page-title">{state.sprint.title}</h1>
-        <div className="page-sub">{fmt(startDate)} — {fmt(endDate)}</div>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 18 }}>
+        <div style={{ minWidth: 0 }}>
+          <div className="page-kicker">{lang === 'ru' ? '90-дневный путь' : '90-day journey'}</div>
+          <h1 className="page-title">{state.sprint.title}</h1>
+          <div className="page-sub">{fmt(startDate)} — {fmt(endDate)}</div>
+        </div>
+        <button
+          className="icon-btn"
+          data-testid="open-settings"
+          aria-label={t('settings')}
+          onClick={() => navigate('/settings')}
+          style={{ marginTop: 4 }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.7" />
+            <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1.11-1.56 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1.03H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.56-1.11 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34h.08a1.7 1.7 0 0 0 1.03-1.56V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1.03 1.56 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.08a1.7 1.7 0 0 0 1.56 1.03H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1.03Z" stroke="currentColor" strokeWidth="1.4" />
+          </svg>
+        </button>
       </div>
 
       {/* Hero: общий прогресс + таймлайн 9 недель */}
@@ -96,6 +115,17 @@ export function SprintPage() {
                   {t('goalProgress', { done: doneTasks })}
                 </div>
               </div>
+
+              <button
+                className="icon-btn"
+                data-testid={`goal-edit-${gi}`}
+                aria-label={t('edit')}
+                onClick={() => setEditGoalId(goal.id)}
+              >
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                  <path d="M11.3 2.3a1.6 1.6 0 0 1 2.3 2.3l-7.8 7.8-3 .8.8-3 7.7-7.9Z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
             </div>
 
             {/* Habit strip */}
@@ -117,6 +147,8 @@ export function SprintPage() {
           </div>
         );
       })}
+
+      {editGoalId && <GoalModal goalId={editGoalId} onClose={() => setEditGoalId(null)} />}
     </div>
   );
 }

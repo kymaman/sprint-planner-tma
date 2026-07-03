@@ -2,8 +2,23 @@ import { useState } from 'react';
 import { useT } from '@/i18n';
 import { useSprintStore } from '@/store';
 import { currentWeek, mainTasks, canMarkAsMain, needsSplit } from '@/model/logic';
+import { TaskModal, type TaskModalTarget } from '@/components/TaskModal';
 
 const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const;
+
+function Pencil({ onClick, testId }: { onClick: () => void; testId?: string }) {
+  return (
+    <button
+      className="icon-btn"
+      data-testid={testId}
+      onClick={e => { e.stopPropagation(); onClick(); }}
+    >
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+        <path d="M11.3 2.3a1.6 1.6 0 0 1 2.3 2.3l-7.8 7.8-3 .8.8-3 7.7-7.9Z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </button>
+  );
+}
 
 function Check({ done, onClick }: { done: boolean; onClick: () => void }) {
   return (
@@ -22,6 +37,7 @@ export function WeekPage() {
   const { state, updateTask, toggleTask } = useSprintStore();
   // null = «следовать текущей неделе» (стор грузится асинхронно)
   const [pickedWeek, setPickedWeek] = useState<number | null>(null);
+  const [modal, setModal] = useState<TaskModalTarget | null>(null);
 
   if (!state.sprint) {
     return null;
@@ -106,6 +122,7 @@ export function WeekPage() {
             >
               ★
             </button>
+            <Pencil testId={`week-edit-${task.id}`} onClick={() => setModal({ taskId: task.id })} />
           </div>
         );
       })}
@@ -130,6 +147,7 @@ export function WeekPage() {
                 <div className={`task-title ${task.done ? 'done' : ''}`} style={{ flex: 1, minWidth: 0 }}>
                   {task.title}
                 </div>
+                <Pencil testId={`week-edit-${task.id}`} onClick={() => setModal({ taskId: task.id })} />
                 {!task.isMain && canAddMain && (
                   <button
                     onClick={() => toggleMain(task.id, false)}
@@ -186,12 +204,25 @@ export function WeekPage() {
                     {task.title}
                   </div>
                   {task.isMain && <span style={{ color: 'var(--coral)', fontSize: 14 }}>★</span>}
+                  <Pencil testId={`week-edit-${task.id}`} onClick={() => setModal({ taskId: task.id })} />
                 </div>
               );
             })}
           </div>
         );
       })}
+
+      {/* Добавить задачу в эту неделю */}
+      <button
+        className="btn-ghost"
+        data-testid="week-add-task"
+        onClick={() => setModal({ defaults: { week: selectedWeek } })}
+        style={{ width: '100%', marginTop: 14 }}
+      >
+        ➕ {t('addTask')}
+      </button>
+
+      {modal && <TaskModal target={modal} onClose={() => setModal(null)} />}
     </div>
   );
 }
