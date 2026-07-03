@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useT } from '@/i18n';
 import { useSprintStore } from '@/store';
 import { mainTasks, tasksForDay } from '@/model/logic';
-import type { Task } from '@/model/types';
+import type { Task, Subtask } from '@/model/types';
 
 const DAY_KEYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const;
 
@@ -38,6 +38,9 @@ export function TaskModal({ target, onClose }: Props) {
   const [week, setWeek] = useState(existing?.week ?? target.defaults?.week ?? 1);
   const [day, setDay] = useState<number | undefined>(existing?.day ?? target.defaults?.day);
   const [isMain, setIsMain] = useState(existing?.isMain ?? false);
+  const [note, setNote] = useState(existing?.note ?? '');
+  const [subs, setSubs] = useState<Subtask[]>(existing?.subtasks ?? []);
+  const [newSub, setNewSub] = useState('');
   const [error, setError] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -51,6 +54,21 @@ export function TaskModal({ target, onClose }: Props) {
     : tasksForDay(sprint, week, day).filter(x => x.id !== existing?.id).length;
   const dayBlocked = day !== undefined && dayCount >= 3;
 
+  const addSub = () => {
+    const s = newSub.trim();
+    if (!s) return;
+    setSubs(prev => [...prev, { id: `sub-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, title: s, done: false }]);
+    setNewSub('');
+  };
+
+  const toggleSub = (id: string) => {
+    setSubs(prev => prev.map(s => (s.id === id ? { ...s, done: !s.done } : s)));
+  };
+
+  const removeSub = (id: string) => {
+    setSubs(prev => prev.filter(s => s.id !== id));
+  };
+
   const handleSave = () => {
     const trimmed = title.trim();
     if (!trimmed) {
@@ -62,13 +80,18 @@ export function TaskModal({ target, onClose }: Props) {
       return;
     }
 
+    const extra = {
+      note: note.trim() || undefined,
+      subtasks: subs.length > 0 ? subs : undefined,
+    };
+
     if (isEdit && existing) {
       if (goalId === existing.goalId) {
-        updateTask(existing.id, { title: trimmed, week, day, isMain });
+        updateTask(existing.id, { title: trimmed, week, day, isMain, ...extra });
       } else {
         // Перенос между целями: удалить и создать в новой цели
         deleteTask(existing.id);
-        addTask(goalId, { ...existing, goalId, title: trimmed, week, day, isMain });
+        addTask(goalId, { ...existing, goalId, title: trimmed, week, day, isMain, ...extra });
       }
     } else {
       addTask(goalId, {
@@ -80,6 +103,7 @@ export function TaskModal({ target, onClose }: Props) {
         done: false,
         isMain,
         estimatedDays: 1,
+        ...extra,
       });
     }
     onClose();
@@ -161,6 +185,72 @@ export function TaskModal({ target, onClose }: Props) {
               {t(k)}
             </button>
           ))}
+        </div>
+
+        {/* Заметка */}
+        <div className="input-label" style={{ marginTop: 14 }}>{t('noteLabel')}</div>
+        <textarea
+          className="input"
+          data-testid="task-note-input"
+          value={note}
+          onChange={e => setNote(e.target.value)}
+          placeholder={t('taskNotePlaceholder')}
+          rows={2}
+          style={{ resize: 'vertical', fontSize: 14 }}
+        />
+
+        {/* Подзадачи */}
+        <div className="input-label" style={{ marginTop: 14 }}>{t('subtasksLabel')}</div>
+        {subs.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 8 }}>
+            {subs.map((s, i) => (
+              <div key={s.id} className="card-inset" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px' }}>
+                <button
+                  onClick={() => toggleSub(s.id)}
+                  data-testid={`subtask-toggle-${i}`}
+                  className={`checkbox ${s.done ? 'checked' : ''}`}
+                  style={{ width: 22, height: 22, flex: 'none', border: s.done ? undefined : '1.5px solid var(--glass-border)', background: s.done ? undefined : 'transparent', cursor: 'pointer' }}
+                  aria-label={s.title}
+                >
+                  {s.done && (
+                    <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+                      <path d="M13 4L6 11L3 8" stroke="#03130a" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  )}
+                </button>
+                <span style={{ flex: 1, fontSize: 14, textDecoration: s.done ? 'line-through' : 'none', opacity: s.done ? 0.55 : 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {s.title}
+                </span>
+                <button
+                  onClick={() => removeSub(s.id)}
+                  data-testid={`subtask-del-${i}`}
+                  aria-label="delete subtask"
+                  style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', fontSize: 16, cursor: 'pointer', padding: '0 2px', lineHeight: 1 }}
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        <div style={{ display: 'flex', gap: 8 }}>
+          <input
+            className="input"
+            data-testid="subtask-add-input"
+            value={newSub}
+            onChange={e => setNewSub(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addSub(); } }}
+            placeholder={t('subtaskPlaceholder')}
+            style={{ flex: 1, fontSize: 14 }}
+          />
+          <button
+            className="btn-ghost"
+            data-testid="subtask-add-btn"
+            onClick={addSub}
+            style={{ padding: '10px 16px', flex: 'none' }}
+          >
+            ＋
+          </button>
         </div>
 
         {/* Главная задача */}

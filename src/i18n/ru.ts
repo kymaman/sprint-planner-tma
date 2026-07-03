@@ -106,6 +106,10 @@ export const ru = {
   taskDeleted: 'Задача удалена',
   undo: 'Отменить',
   titleRequired: 'Введите название',
+  noteLabel: 'Заметка',
+  taskNotePlaceholder: 'Детали, ссылки, мысли…',
+  subtasksLabel: 'Подзадачи',
+  subtaskPlaceholder: 'Добавить подзадачу…',
 
   // Goal editing
   editGoal: 'Цель',
@@ -124,8 +128,23 @@ export const ru = {
   importErr: 'Не похоже на бэкап спринта',
   dangerZone: 'Опасная зона',
   newSprint: 'Начать новый спринт',
-  newSprintHint: 'Текущий спринт будет удалён. Сначала сделайте бэкап.',
+  newSprintHint: 'Текущий спринт уйдёт в архив, и вы начнёте новый.',
   saved: 'Сохранено ✓',
+
+  // Archive
+  archiveSection: 'Архив спринтов',
+  archivedEmpty: '',
+  tasksDoneStat: 'задач',
+  bestStreakStat: 'лучший стрик',
+  daysStat: 'дн.',
+  restoreSprint: 'Восстановить',
+  restoreConfirmTap: 'Текущий уйдёт в архив. Ещё раз?',
+
+  // Burndown
+  burndownTitle: 'Burndown спринта',
+  burndownPlan: 'План',
+  burndownFact: 'Факт',
+  burndownLeft: 'Осталось задач',
 
   // Rollover
   overdueTasks: 'Незавершённые с прошлых недель',

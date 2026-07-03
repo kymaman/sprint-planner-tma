@@ -106,6 +106,10 @@ export const en = {
   taskDeleted: 'Task deleted',
   undo: 'Undo',
   titleRequired: 'Enter a title',
+  noteLabel: 'Note',
+  taskNotePlaceholder: 'Details, links, thoughts…',
+  subtasksLabel: 'Subtasks',
+  subtaskPlaceholder: 'Add a subtask…',
 
   // Goal editing
   editGoal: 'Goal',
@@ -124,8 +128,23 @@ export const en = {
   importErr: 'Does not look like a sprint backup',
   dangerZone: 'Danger zone',
   newSprint: 'Start a new sprint',
-  newSprintHint: 'Current sprint will be deleted. Make a backup first.',
+  newSprintHint: 'Current sprint will be archived and you will start fresh.',
   saved: 'Saved ✓',
+
+  // Archive
+  archiveSection: 'Sprint archive',
+  archivedEmpty: '',
+  tasksDoneStat: 'tasks',
+  bestStreakStat: 'best streak',
+  daysStat: 'd.',
+  restoreSprint: 'Restore',
+  restoreConfirmTap: 'Current goes to archive. Tap again?',
+
+  // Burndown
+  burndownTitle: 'Sprint burndown',
+  burndownPlan: 'Plan',
+  burndownFact: 'Actual',
+  burndownLeft: 'Tasks left',
 
   // Rollover
   overdueTasks: 'Unfinished from past weeks',

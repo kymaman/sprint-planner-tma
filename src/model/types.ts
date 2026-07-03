@@ -27,6 +27,14 @@ export interface Task {
   isMain: boolean;
   estimatedDays: number;
   carriedFrom?: number; // week number if carried over
+  note?: string; // свободная заметка к задаче
+  subtasks?: Subtask[]; // чек-лист для дробления крупных задач
+}
+
+export interface Subtask {
+  id: string;
+  title: string;
+  done: boolean;
 }
 
 export interface Habit {

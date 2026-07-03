@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useT } from '@/i18n';
 import { useSprintStore } from '@/store';
 import { currentWeek, weekStats, unfinishedTasks, carryOverTask } from '@/model/logic';
+import { BurndownChart } from '@/components/BurndownChart';
 import { useRawInitData } from '@tma.js/sdk-react';
 import {
   getOAuthStatus,
@@ -107,6 +108,9 @@ export function ReviewPage() {
           );
         })}
       </div>
+
+      {/* Burndown спринта */}
+      <BurndownChart sprint={state.sprint} />
 
       {/* Unfinished tasks */}
       {unfinished.length > 0 && (

@@ -1,6 +1,17 @@
 import { createContext, useContext, useReducer, useEffect, ReactNode, useCallback } from 'react';
-import { cloudStorage } from '@tma.js/sdk-react';
+import { cloudStorage, retrieveLaunchParams } from '@tma.js/sdk-react';
+import { saveSprintSnapshot, loadSprintSnapshot } from '@/api/calendar';
 import type { Sprint, Goal, Task } from '@/model/types';
+
+/** raw initData для авторизации на нашем API (undefined вне Telegram) */
+function getInitDataRaw(): string | undefined {
+  try {
+    const raw = retrieveLaunchParams().initDataRaw;
+    return typeof raw === 'string' ? raw : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 type Action =
   | { type: 'SET_SPRINT'; sprint: Sprint | null }
@@ -233,6 +244,13 @@ async function saveToCloud(sprint: Sprint | null) {
   } catch (e) {
     console.error('Failed to save to cloud storage:', e);
   }
+
+  // Серверный снапшот — fire-and-forget (вне TG / без сети просто молча не сохранится)
+  try {
+    await saveSprintSnapshot(getInitDataRaw(), sprint);
+  } catch {
+    // не критично: localStorage/CloudStorage — основное хранилище
+  }
 }
 
 function saveToLocalStorage(sprint: Sprint | null) {
@@ -247,6 +265,13 @@ function saveToLocalStorage(sprint: Sprint | null) {
   }
 }
 
+/** Выбирает более свежий спринт по updatedAt */
+function newer(a: Sprint | null, b: Sprint | null): Sprint | null {
+  if (!a) return b;
+  if (!b) return a;
+  return new Date(b.updatedAt) > new Date(a.updatedAt) ? b : a;
+}
+
 async function loadFromStorage(): Promise<Sprint | null> {
   try {
     // Load from localStorage first (instant)
@@ -257,27 +282,23 @@ async function loadFromStorage(): Promise<Sprint | null> {
       localSprint = JSON.parse(localData);
     }
 
-    // Try to load from cloud if supported (with timeout so UI never hangs)
-    if (cloudStorage.isSupported()) {
-      try {
-        const cloudData = await Promise.race([
-          cloudStorage.getItem(STORAGE_KEY),
+    // Параллельно: CloudStorage TG + серверный снапшот (бот мог добавить задачи голосом).
+    // Оба с таймаутом, чтобы UI никогда не завис.
+    const cloudPromise: Promise<Sprint | null> = cloudStorage.isSupported()
+      ? Promise.race([
+          cloudStorage.getItem(STORAGE_KEY).then(d => (d ? (JSON.parse(d) as Sprint) : null)),
           new Promise<null>(resolve => setTimeout(() => resolve(null), 2000)),
-        ]);
-        if (cloudData) {
-          const cloudSprint: Sprint = JSON.parse(cloudData);
+        ]).catch(() => null)
+      : Promise.resolve(null);
 
-          // Use cloud data if newer
-          if (!localSprint || new Date(cloudSprint.updatedAt) > new Date(localSprint.updatedAt)) {
-            return cloudSprint;
-          }
-        }
-      } catch (e) {
-        console.error('Failed to load from cloud storage:', e);
-      }
-    }
+    const serverPromise: Promise<Sprint | null> = Promise.race([
+      loadSprintSnapshot(getInitDataRaw()).then(r => r.sprint),
+      new Promise<null>(resolve => setTimeout(() => resolve(null), 2500)),
+    ]).catch(() => null);
 
-    return localSprint;
+    const [cloudSprint, serverSprint] = await Promise.all([cloudPromise, serverPromise]);
+
+    return newer(newer(localSprint, cloudSprint), serverSprint);
   } catch (e) {
     console.error('Failed to load from storage:', e);
     return null;

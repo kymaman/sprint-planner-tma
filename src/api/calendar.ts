@@ -105,4 +105,21 @@ export async function getEvents(
   );
 }
 
+// ---- Серверный снапшот спринта (для напоминаний бота и голосового добавления) ----
+export async function saveSprintSnapshot(
+  initDataRaw: string | undefined,
+  sprint: Sprint
+): Promise<{ ok: boolean }> {
+  return apiFetch('/sprint', initDataRaw, {
+    method: 'POST',
+    body: JSON.stringify({ sprint }),
+  });
+}
+
+export async function loadSprintSnapshot(
+  initDataRaw: string | undefined
+): Promise<{ sprint: Sprint | null }> {
+  return apiFetch<{ sprint: Sprint | null }>('/sprint', initDataRaw);
+}
+
 export { CalendarAPIError };

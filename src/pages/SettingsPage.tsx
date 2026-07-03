@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useT } from '@/i18n';
 import { useSprintStore } from '@/store';
+import { loadArchive, pushToArchive, removeFromArchive, sprintStats } from '@/model/archive';
 import type { Sprint } from '@/model/types';
 
 function looksLikeSprint(obj: unknown): obj is Sprint {
@@ -29,6 +30,8 @@ export function SettingsPage() {
   const [importText, setImportText] = useState('');
   const [importMsg, setImportMsg] = useState('');
   const [confirmReset, setConfirmReset] = useState(false);
+  const [archive, setArchive] = useState<Sprint[]>(() => loadArchive());
+  const [confirmRestore, setConfirmRestore] = useState<string | null>(null);
 
   const showFlash = (msg: string) => {
     setFlash(msg);
@@ -83,8 +86,31 @@ export function SettingsPage() {
       setTimeout(() => setConfirmReset(false), 4000);
       return;
     }
+    if (sprint) setArchive(pushToArchive(sprint));
     setSprint(null);
     navigate('/setup');
+  };
+
+  const restoreFromArchive = (id: string) => {
+    if (confirmRestore !== id) {
+      setConfirmRestore(id);
+      setTimeout(() => setConfirmRestore(null), 4000);
+      return;
+    }
+    const target = archive.find(s => s.id === id);
+    if (!target) return;
+    // Текущий (если есть) — в архив, выбранный — из архива в работу
+    let next = removeFromArchive(id);
+    if (sprint) {
+      pushToArchive(sprint);
+      next = loadArchive();
+    }
+    setArchive(next);
+    setConfirmRestore(null);
+    setSprint({ ...target, updatedAt: new Date().toISOString() });
+    setTitle(target.title);
+    setStartDate(target.startDate);
+    showFlash(t('importOk'));
   };
 
   return (
@@ -179,6 +205,37 @@ export function SettingsPage() {
           </div>
         )}
       </div>
+
+      {/* Архив спринтов */}
+      {archive.length > 0 && (
+        <>
+          <div className="section-label">🗂 {t('archiveSection')}</div>
+          <div className="card" data-testid="archive-section" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {archive.map(s => {
+              const st = sprintStats(s);
+              return (
+                <div key={s.id} className="card-inset" data-testid={`archive-item-${s.id}`} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14.5, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.title}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 3 }}>
+                      {s.startDate} · ✓ {st.tasksDone}/{st.tasksTotal} {t('tasksDoneStat')}
+                      {st.bestStreak > 0 ? ` · 🔥 ${st.bestStreak} ${t('daysStat')} ${t('bestStreakStat')}` : ''}
+                    </div>
+                  </div>
+                  <button
+                    className="btn-ghost"
+                    data-testid={`archive-restore-${s.id}`}
+                    onClick={() => restoreFromArchive(s.id)}
+                    style={{ padding: '9px 12px', fontSize: 12.5, whiteSpace: 'nowrap', flex: 'none' }}
+                  >
+                    {confirmRestore === s.id ? t('restoreConfirmTap') : `↩ ${t('restoreSprint')}`}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
 
       {/* Опасная зона */}
       {sprint && (

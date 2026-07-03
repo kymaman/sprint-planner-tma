@@ -118,9 +118,17 @@ export function TodayPage() {
 
             <div style={{ flex: 1, minWidth: 0 }}>
               <div className={`task-title ${task.done ? 'done' : ''}`}>{task.title}</div>
-              {task.isMain && (
-                <div style={{ marginTop: 6 }}>
-                  <span className="badge badge-coral">★ {lang === 'ru' ? 'Главная задача' : 'Main task'}</span>
+              {(task.isMain || task.note || (task.subtasks?.length ?? 0) > 0) && (
+                <div style={{ marginTop: 6, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {task.isMain && (
+                    <span className="badge badge-coral">★ {lang === 'ru' ? 'Главная задача' : 'Main task'}</span>
+                  )}
+                  {(task.subtasks?.length ?? 0) > 0 && (
+                    <span className="badge" data-testid={`subtask-badge-${task.id}`} style={{ background: 'rgba(62,224,255,0.12)', color: 'var(--cyan, #3ee0ff)' }}>
+                      ☑ {task.subtasks!.filter(s => s.done).length}/{task.subtasks!.length}
+                    </span>
+                  )}
+                  {task.note && <span className="badge" style={{ background: 'rgba(255,255,255,0.07)', color: 'var(--text-tertiary)' }}>📝</span>}
                 </div>
               )}
             </div>
